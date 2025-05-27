@@ -30,7 +30,7 @@ const personSchema = new mongoose.Schema({
         
     }
 });
-//create person midel .
+//create person model .
 
 const Person = mongoose.model('Person' , personSchema); //export personschema as person .
 module.exports = Person ;
