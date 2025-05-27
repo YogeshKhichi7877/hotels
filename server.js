@@ -13,7 +13,8 @@ app.get('/' , (req , res)=>{
 })
 
 app.get('/menu' , (req , res)=>{
-    console.log("menu is not available right now ");
+    //console.log("menu is not available right now ");
+    res.send("menu is not available right now ");
 })
 app.post('/person' , async (req ,res)=>{
    try{
@@ -46,15 +47,15 @@ app.get('/person', async (req ,res)=>{
 })
 app.get('/person/:workType' ,async (req , res)=>{ ///:worktype becomes a variable .
     try{
-         const workType = req.params.worktype ; // extract the work type from the URL parameter .
+         const workType = req.params.workType ; // extract the work type from the URL parameter .
 
-    if(workType =='chef' , workType=='waiter' , workType == 'manager'){
+    if(workType =='chef' || workType=='waiter' || workType == 'manager'){
         const response = await Person.find({work : workType});
         console.log('response fetched ');
         res.status(200).json(response);
 
     }else {
-        res.status(404).json({error: err.message}) 
+        res.status(404).json({error:"error occured"}) 
     }
 
     }catch(err){
@@ -110,8 +111,8 @@ app.delete('/person/:id' , async (req , res)=>{
 })
 //new comment added to use git pull request.
 //comment added for testing purpose .
-const PORT = process.env.PORT || 8080 ;
-app.listen(PORT , ()=>{
-    console.log("listening on port 8080");
-    console.log("http://localhost:8080");
+const port = process.env.PORT || 5000 ; //this is not working 
+app.listen(5000 , ()=>{
+    console.log("listening on port 5000");
+    console.log("http://localhost:5000");
 })
