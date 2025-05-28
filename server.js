@@ -3,10 +3,50 @@ const app = express();
 const db = require('./db');
 require('dotenv').config();
 
+const passport = require('passport');
+const localStrategy = require('passport-local').Strategy ;// username and passport strategy .
+
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
 const Person = require('./models/person');
+
+//************************************************************************************************ */
+// Middleware function .
+const logRequest = (req , res , next)=>{
+    console.log(`${new Date().toLocaleString()} Request made to : ${req.originalUrl}`);
+    next();// agar koi dusra logrequest hai toh usko pura karenga warna server ke pass jayega ..
+}
+
+app.use(logRequest);//timing added to every get , post , put , etc  request .
+//************************************************************************************************ */
+
+//Authentication .
+passport.use(new localStrategy(async (USERNAME , password , done)=>{
+    //authentication logic 
+    try{
+        //console.log("received credentials ", USERNAME , password  );
+        const user = await Person.findOne({username : USERNAME});
+        if(!user){
+            return done(null , false ,{message:'incorrect username'});
+        }
+        const isPasswordMatch = user.password == password ? true : false ;
+        if(isPasswordMatch){
+            return console.log(null , user);
+        }else {
+            return done(null , false , {message : 'Incorrect password'});
+        }
+
+    }catch(err){
+        return done(err);
+    }
+}))
+
+app.use(passport.initialize()); // starting the service .
+
+app.get('/a' , passport.authenticate('local' , {session: false}), (req , res)=>{
+    res.send("Authentication message ");
+})
 
 app.get('/' , (req , res)=>{
     res.send("welcome to my hotel ");
@@ -16,6 +56,7 @@ app.get('/menu' , (req , res)=>{
     //console.log("menu is not available right now ");
     res.send("menu is not available right now ");
 })
+
 app.post('/person' , async (req ,res)=>{
    try{
     const data = req.body ;
@@ -63,7 +104,6 @@ app.get('/person/:workType' ,async (req , res)=>{ ///:worktype becomes a variabl
         res.status(500).json({error: err.message}) 
     }
    
-
 })
 
 //updating data .
