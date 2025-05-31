@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const personSchema = new mongoose.Schema({
     name : {
@@ -39,6 +40,11 @@ const personSchema = new mongoose.Schema({
     }
 });
 //create person model .
+
+// Add this method to compare passwords
+personSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 const Person = mongoose.model('Person' , personSchema); //export personschema as person .
 module.exports = Person ;

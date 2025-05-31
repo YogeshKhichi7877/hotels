@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const db = require('./db');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
+
+const {jwtAuthMiddleware , generateToken} = require('./jwt');
 
 const passport = require('passport');
 const localStrategy = require('passport-local').Strategy ;// username and passport strategy .
@@ -19,12 +22,13 @@ const logRequest = (req , res , next)=>{
 }
 
 app.use(logRequest);//timing added to every get , post , put , etc  request .
-//************************************************************************************************ */
+//************************************************************************************************* */
 
 //Authentication .
 passport.use(new localStrategy(async (USERNAME , password , done)=>{
     //authentication logic 
     try{
+
         //console.log("received credentials ", USERNAME , password  );
         const user = await Person.findOne({username : USERNAME});
         if(!user){
@@ -42,9 +46,11 @@ passport.use(new localStrategy(async (USERNAME , password , done)=>{
     }
 }))
 
+const localAuthMiddleWare = passport.authenticate('local' , {session: false});
+
 app.use(passport.initialize()); // starting the service .
 
-app.get('/a' , passport.authenticate('local' , {session: false}), (req , res)=>{
+app.get('/a' , localAuthMiddleWare ,(req , res)=>{
     res.send("Authentication message ");
 })
 
@@ -57,22 +63,62 @@ app.get('/menu' , (req , res)=>{
     res.send("menu is not available right now ");
 })
 
-app.post('/person' , async (req ,res)=>{
+app.post('/person/signup' , async (req ,res)=>{
    try{
     const data = req.body ;
     const newPerson = new Person(data);
 
-    const savedPerson = await newPerson.save();
+    const response = await newPerson.save();
     console.log('data saved ');
-    res.status(200).json(savedPerson);
+    const payload ={
+        id : response.id,
+        username : response.username ,
+    }
+    console.log(JSON.stringify(payload));
+
+    const token = generateToken(response.username);
+    console.log("token is : " , token);
+    res.status(200).json({ response : response , token : token});
 
    }
    catch(err){
     console.log(err);
-    res.status(500).json({error : 'internal server error'})
+    res.status(500).json({error : err.message})
 
    }
 
+})
+
+
+app.post('/person/login' , async (req , res)=>{
+    try {
+        // extract the username and password 
+        const {username , password} = req.body ;
+
+        // find the user by username 
+        const user = await Person.findOne({username : username});
+
+        // if user does not exist 
+        // condition is false always (fix this ) 
+        // if( !user && !(await user.comparePassword(password))){
+        //     return res.status(401).json({error : 'invalid username or password'})
+        // }
+
+        // generate token 
+        const payload ={
+            id : user.id ,
+            username : user.username 
+        }
+        const token = generateToken(payload) ; 
+        // return token as response 
+        res.json(token);
+        
+
+    }catch(err){
+        console.log(err);
+        res.status(500).json({error : err.message });
+
+    }
 })
 //to get the saved data from the data base 
 
@@ -149,6 +195,24 @@ app.delete('/person/:id' , async (req , res)=>{
 
     }
 })
+// profile viewver
+app.get('/profile' , jwtAuthMiddleware,async (req , res)=>{
+    try{ 
+    
+    const profile = req.user ;
+    console.log("User data :" , profile);
+
+    const userId = profile._id ;
+    const user = await Person.findById(userId);
+
+    res.status(200).json(user);
+ 
+}catch(err){
+    console.log("error occured"  , err);
+    res.status(500).json(err.message);
+}
+})
+
 //new comment added to use git pull request.
 //comment added for testing purpose .
 const port = process.env.PORT || 5000 ; //this is not working 
@@ -156,3 +220,21 @@ app.listen(5000 , ()=>{
     console.log("listening on port 5000");
     console.log("http://localhost:5000");
 })
+
+//bcrypt use karne ka demo code .(from original website) :
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+const myPlaintextPassword = 'yogesh';
+const someOtherPlaintextPassword = 'not_me';//ye kuch bhi ho sakta hai . 
+
+bcrypt.genSalt(saltRounds, function(err, salt) {
+    bcrypt.hash(myPlaintextPassword, salt, function(err, hash) {
+        // Store hash in your password DB.
+        console.log(hash); // hash will contain the password in a string formate .
+
+        bcrypt.compare("yogesh" , 'wertyuiophgtrfdesdfghuiolkijuytredfgh' , (err , res)=>{
+            console.log(res) ; // true or false 
+        })
+    });
+});
+
